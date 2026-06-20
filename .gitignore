@@ -1,0 +1,13 @@
+# Python environment / caches
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# Competition materials provided by the organizers (not for redistribution)
+oil_presence_trainset.csv
+oil_presence_testset.csv
+SPE DSEATS Africa 2026 Datathon Competition Guidelines.pdf
