@@ -184,11 +184,69 @@ The tree models all scored close together, so instead of betting on one we **ave
 predictions** — this is called a soft-voting *ensemble*. Averaging several good models is usually a
 little more reliable than trusting any single one.
 
-### D5. Reading the results (figure 10)
-- The **confusion matrix** is a 2×2 grid showing where we were right and wrong (oil we caught, oil
-  we missed, dry holes we got right, false alarms).
-- The **ROC curve** and its **AUC** number measure how well the model *ranks* oil locations above
-  dry ones across every possible cut-off. AUC of 0.5 is a coin flip; 1.0 is perfect. We get ~0.81.
+### D5. Reading the scorecard: every evaluation metric, explained
+
+This is how we measure whether the model is any good. The easiest way to understand all of it is
+to picture each prediction as a **drilling decision**, because that's exactly what it stands for.
+Saying "oil" means *drill here* (expensive); saying "dry" means *don't bother*.
+
+**The confusion matrix (the foundation everything is built on).** Every prediction lands in one of
+four boxes, depending on what we said versus what was actually true:
+
+|  | We predicted **dry** | We predicted **oil** |
+|---|---|---|
+| **Actually dry** | TN — correctly skipped (money saved) | **FP** — drilled a dry hole (wasted cost) |
+| **Actually oil** | **FN** — walked away from real oil (missed fortune) | TP — drilled and struck oil |
+
+- **TP (true positive):** we said oil, and there was oil. ✅
+- **TN (true negative):** we said dry, and it was dry. ✅
+- **FP (false positive):** we said oil, but it was dry — a *false alarm*. ❌
+- **FN (false negative):** we said dry, but it was oil — a *miss*. ❌
+
+Our actual numbers on the test-like rows (the 1,950 training rows that have a seismic score, our
+closest mirror of the real test set): **TN = 1,362, FP = 72, FN = 152, TP = 364.**
+
+**The five headline metrics**, each one just an everyday question:
+
+| Metric | Plain-English question | How it's worked out | Our number |
+|---|---|---|---|
+| **Accuracy** | Of every decision, how often were we right? | (TP+TN) ÷ everything | **0.885** |
+| **Precision** | When we said "oil," how often were we right? | TP ÷ (TP+FP) | **0.835** |
+| **Recall** | Of all the real oil, how much did we catch? | TP ÷ (TP+FN) | **0.705** |
+| **F1 score** | One fair score balancing precision and recall | 2·(P·R) ÷ (P+R) | **0.765** |
+| **ROC-AUC** | How well do we *rank* oil above dry? | area under the ROC curve | **0.831** |
+
+What each one is really telling us here:
+
+- **Accuracy 0.885** — we make the right call on about 89 of every 100 locations. Important
+  context: because only ~28% of locations have oil, a lazy "never drill" guess already scores 72%.
+  So 72% is the floor we have to beat, and we clearly do.
+- **Precision 0.835** — when we get excited and drill, we strike oil about 84 times in 100; the
+  other ~16 are dry holes (our 72 false positives).
+- **Recall 0.705** — of all the oil that was really out there, we go and get about 70% of it. We
+  leave ~30% in the ground (our 152 false negatives) because the model plays it safe.
+- **F1 0.765** — a single number that stops us "cheating" either by only drilling ultra-safe bets
+  (great precision, terrible recall) or by drilling everything (great recall, terrible precision).
+  It's the harmonic mean, so it's only high when *both* precision and recall are decent.
+- **ROC-AUC 0.831** — imagine lining up every location from most to least likely to have oil. AUC
+  is the chance that a real oil location sits above a real dry one in that ranking. 0.5 is a coin
+  flip, 1.0 is perfect; 0.83 is a genuinely useful drilling order.
+
+One more idea ties all of these together: **the threshold.** The model doesn't actually output
+"oil/dry" — it gives us a *probability* (say 0.62), and we turn that into a yes/no by cutting at
+0.5. If we slide that cut *down*, we drill more freely: we catch more oil (recall goes up) but hit
+more dry holes (precision goes down). Accuracy, precision and recall all move as we move the
+threshold. ROC-AUC is the one exception, because it judges the ranking itself, so it doesn't depend
+on where we put the cut.
+
+> A note on why we don't just trust accuracy: because oil is rare here (~28%), a useless model that
+> never drills already scores 72%. That's why we always report precision, recall and F1 next to it,
+> so a high accuracy can't fool us into thinking a lazy model is a good one.
+
+### D5b. The ROC curve and confusion matrix plot (figure 10)
+Figure 10 shows two of these visually: the **confusion matrix** as a coloured 2×2 grid, and the
+**ROC curve**, which traces the recall-vs-false-alarm trade-off as we slide the threshold from one
+extreme to the other. The area under that curve is the AUC number above.
 
 ---
 
